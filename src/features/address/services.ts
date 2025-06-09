@@ -1,4 +1,4 @@
-import { Result } from "../../abstracts/commons.js";
+import { Result } from "../../common/commons.js";
 import { status } from "../../helpers/response.js";
 import { EmptyResponse } from "../todo/models.js";
 import { AddressDto, CreateAddressResponseDto } from "./model.js";

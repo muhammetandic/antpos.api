@@ -1,7 +1,8 @@
 import { Schema, model } from "mongoose";
-import { ISoftDeleted, IAuditable } from "../../abstracts/base-schemes.js";
+import { ISoftDelete } from "../../common/schemes/soft-delete.js";
+import { IAuditable } from "../../common/schemes/auditable.js";
 
-export interface ITodo extends ISoftDeleted, IAuditable {
+export interface ITodo extends ISoftDelete, IAuditable {
   title: string;
   description?: string;
   isCompleted: boolean;

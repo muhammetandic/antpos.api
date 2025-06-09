@@ -1,5 +1,5 @@
 import { CreateTodoResponse, EmptyResponse, TodoDto } from "./models.js";
-import { Result } from "../../abstracts/commons.js";
+import { Result } from "../../common/commons.js";
 import { Todo, ITodo } from "./scheme.js";
 import { status } from "../../helpers/response.js";
 

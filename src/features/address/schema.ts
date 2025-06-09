@@ -1,7 +1,8 @@
 import { model, Schema } from "mongoose";
-import { IAuditable, ISoftDeleted } from "../../abstracts/base-schemes.js";
+import { ISoftDelete } from "../../common/schemes/soft-delete.js";
+import { IAuditable } from "../../common/schemes/auditable.js";
 
-export interface IAddress extends ISoftDeleted, IAuditable {
+export interface IAddress extends ISoftDelete, IAuditable {
   phone: string;
   email: string;
   addressLine1: string;

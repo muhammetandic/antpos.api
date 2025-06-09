@@ -1,11 +1,11 @@
 meta {
-  name: sign-in
+  name: login
   type: http
   seq: 1
 }
 
 post {
-  url: {{url}}/auth/signin
+  url: {{url}}/auth/login
   body: json
   auth: none
 }
@@ -20,9 +20,4 @@ body:json {
     "email": "m_andic@hotmail.com",
     "password": "Deneme.123"
   }
-}
-
-script:post-response {
-  const data = res.getBody();
-  bru.setEnvVar("access-token",data.data.token);
 }

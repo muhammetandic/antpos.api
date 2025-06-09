@@ -1,6 +1,7 @@
-import { IAuditable, ISoftDeleted } from "../../abstracts/base-schemes.js";
+import { IAuditable } from "../../common/schemes/auditable.js";
+import { ISoftDelete } from "../../common/schemes/soft-delete.js";
 
-export interface ICustomer extends ISoftDeleted, IAuditable {
+export interface ICustomer extends ISoftDelete, IAuditable {
   email?: string;
   phone: string;
   name: string;

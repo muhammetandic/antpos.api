@@ -4,15 +4,16 @@ import { authRoutes } from "./features/auth/routes.js";
 import { authMiddleware } from "./middlewares/auth.js";
 import { addressRoutes } from "./features/address/routes.js";
 
-export const router = express.Router();
+export const routes = express.Router();
 const apiRoutes: Router = express.Router();
 
 apiRoutes.use(authMiddleware);
 apiRoutes.use("/todos", todoRoutes);
 apiRoutes.use("/addresses", addressRoutes);
-apiRoutes.get("/health-check", (_, res) => {
+
+routes.use("/auth", authRoutes);
+routes.use("/api", apiRoutes);
+
+routes.get("/health-check", (_, res) => {
   res.json({ success: true, message: "Server is healthy" });
 });
-
-router.use("/auth", authRoutes);
-router.use("/api", apiRoutes);
