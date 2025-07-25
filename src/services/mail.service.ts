@@ -1,6 +1,6 @@
 import nodemailer, { Transporter } from "nodemailer";
 import hbs from "nodemailer-express-handlebars";
-import { MailParameters } from "./types/mail-sender.js";
+import { Mail } from "../common/dtos/mail.js";
 
 const transporter: Transporter = nodemailer.createTransport({
   service: "gmail",
@@ -9,6 +9,7 @@ const transporter: Transporter = nodemailer.createTransport({
     pass: process.env.MAIL_PASS || "test",
   },
 });
+
 transporter.use(
   "compile",
   hbs({
@@ -22,7 +23,7 @@ transporter.use(
   }),
 );
 
-const setMailOptions = ({ to, subject, template, context }: MailParameters) => ({
+const setMailOptions = ({ to, subject, template, context }: Mail) => ({
   from: `antpos-todo <${process.env.MAIL_USER}>`,
   to,
   subject,
@@ -33,9 +34,9 @@ const setMailOptions = ({ to, subject, template, context }: MailParameters) => (
   },
 });
 
-export const sendEmail = async (parameters: MailParameters): Promise<void> => {
+export const sendMailAsync = async (mail: Mail): Promise<void> => {
   const options = {
-    ...setMailOptions(parameters),
+    ...setMailOptions(mail),
     ...(process.env.NODE_ENV === "development" && {
       host: "localhost",
       port: 1025,
@@ -46,5 +47,5 @@ export const sendEmail = async (parameters: MailParameters): Promise<void> => {
   };
 
   await transporter.sendMail(options);
-  console.log("[nodemailer]: email sent successfully");
+  console.log("[nodemailer]: mail sent successfully");
 };

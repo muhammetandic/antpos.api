@@ -2,7 +2,7 @@ import express, { Express } from "express";
 import morgan from "morgan";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import { connectMongo } from "./services/mongo.js";
+import { connectMongo } from "./services/mongo.service.js";
 import { routes } from "./routes.js";
 import { errorHandler } from "./middlewares/error-handler.js";
 

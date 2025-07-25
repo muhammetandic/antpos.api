@@ -1,27 +1,79 @@
 services:
-  antpos-todo:
-    build: ./
-    image: "antpos-todo"
-    container_name: antpos-todo
-    restart: always
-    ports:
-      - "5200:5200"
-    environment:
-      MONGO_URI: mongodb://mandic:deneme@mongo:27017/?appName=AntPosTodo
-      PORT: 5200
-      SECRET_KEY: "S3cr3tK3y"
-      JWT_SECRET: "S3cr3tK3y"
-      ENCRYPTION_METHOD: aes-256-cbc
-      MAIL_USER: muhammet.andic@gmail.com
-      MAIL_PASS: nwmylxiagxzbxymp
-    depends_on:
-      mongo:
-        condition: service_started
+  mongo-init:
+    image: docker.io/mongodb/mongodb-community-server:latest
+    container_name: mongo-init
+    volumes:
+      - mongo_keyfile:/shared
+    command: >
+      bash -c "
+        echo 'Generating replica set keyfile...'
+        openssl rand -base64 756 > /shared/replica.key
+        chmod 400 /shared/replica.key
+        chown 999:999 /shared/replica.key
+        echo 'Keyfile generated successfully'
+      "
+    restart: "no"
+
   mongo:
     image: docker.io/mongodb/mongodb-community-server:latest
     container_name: mongo
     ports:
       - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+      - mongo_keyfile:/shared
+    networks:
+      - mongo-network
+    restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: mandic
-      MONGO_INITDB_ROOT_PASSWORD: deneme
+      MONGODB_INITDB_ROOT_USERNAME: mandic
+      MONGODB_INITDB_ROOT_PASSWORD: deneme
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--keyFile", "/shared/replica.key"]
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  mongo-setup:
+    image: docker.io/mongodb/mongodb-community-server:latest
+    container_name: mongo-setup
+    depends_on:
+      mongo:
+        condition: service_started
+    networks:
+      - mongo-network
+    volumes:
+      - mongo_keyfile:/shared
+    command: >
+      bash -c "
+        echo 'Waiting for MongoDB to be ready...'
+        sleep 10
+        echo 'Initializing single-node replica set...'
+        mongosh --host mongo:27017 --username mandic --password deneme --authenticationDatabase admin --eval '
+        rs.initiate({
+          _id: \"rs0\",
+          members: [
+            { _id: 0, host: \"localhost:27017\" }
+          ]
+        })'
+        echo 'Single-node replica set initialization completed'
+        echo 'Checking replica set status...'
+        sleep 3
+        mongosh --host mongo:27017 --username mandic --password deneme --authenticationDatabase admin --eval 'rs.status()'
+      "
+    restart: "no"
+
+volumes:
+  mongo_data:
+  mongo_config:
+  mongo_keyfile:
+
+networks:
+  mongo-network:
+    driver: bridge

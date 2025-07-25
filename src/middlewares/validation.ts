@@ -1,7 +1,7 @@
 import { UnknownKeysParam, ZodError, ZodIssue, ZodObject, ZodRawShape } from "zod";
 import { Request, Response, NextFunction } from "express";
 import { HttpStatus } from "../common/constants/http-status.js";
-import { Result } from "../common/Dtos/Result.js";
+import { Result } from "../common/dtos/result.js";
 
 export function validateData(schema: ZodObject<ZodRawShape, UnknownKeysParam>) {
   return (req: Request, res: Response, next: NextFunction) => {

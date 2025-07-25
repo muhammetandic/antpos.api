@@ -1,8 +1,17 @@
+import { HttpStatus } from "../constants/http-status.js";
+
 export class Result<T> {
   public data?: T;
   public errors?: Record<string, string[]>;
+  public status: HttpStatus;
 
   constructor() {
+    this.status = HttpStatus.Ok;
+    return this;
+  }
+
+  setStatus(status: HttpStatus) {
+    this.status = status;
     return this;
   }
 

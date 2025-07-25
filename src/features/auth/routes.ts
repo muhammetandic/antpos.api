@@ -1,10 +1,12 @@
 import express, { Router, Response, Request } from "express";
-import { loginAsync, registerAsync } from "./services.js";
-import { LoginRequest } from "./models/login-request.js";
+import { forgetPasswordAsync, loginAsync, registerAsync } from "./services.js";
+import { LoginRequest } from "./models/login.request.js";
 import { validateData } from "../../middlewares/validation.js";
-import { loginRequestValidator } from "./validators/login-request-validator.js";
-import { RegisterRequest } from "./models/register-request.js";
-import { registerRequestValidator } from "./validators/register-request-validator.js";
+import { loginRequestValidator } from "./validators/login-request.validator.js";
+import { RegisterRequest } from "./models/register.request.js";
+import { registerRequestValidator } from "./validators/register-request.validator.js";
+import { forgetPasswordValidator } from "./validators/forget-password.validator.js";
+import { ForgetPasswordRequest } from "./models/forget-password.request.js";
 
 export const authRoutes: Router = express.Router();
 
@@ -12,14 +14,11 @@ authRoutes.post("/login", validateData(loginRequestValidator), async (req: Reque
   const request = req.body;
   const result = await loginAsync(request);
 
-  if (result.error) {
-    res.status(result.status).json({ success: false, error: result.error });
-  }
-
   if (request.authType === "cookie") {
     res.status(result.status).cookie("token", result.data?.accessToken).json({ success: true });
   }
-  res.status(result.status).json({ success: true, data: result.data });
+
+  res.status(result.status).json(result);
 });
 
 authRoutes.post(
@@ -29,10 +28,17 @@ authRoutes.post(
     const request = req.body;
     const result = await registerAsync(request);
 
-    if (result.error) {
-      res.status(result.status).json({ success: false, error: result.error });
-    }
+    res.status(result.status).json(result);
+  },
+);
 
-    res.status(result.status).json({ success: true, data: result.data });
+authRoutes.post(
+  "/forgetPassword",
+  validateData(forgetPasswordValidator),
+  async (req: Request<ForgetPasswordRequest>, res: Response) => {
+    const request = req.body;
+    const result = await forgetPasswordAsync(request);
+
+    res.status(result.status).json(result);
   },
 );

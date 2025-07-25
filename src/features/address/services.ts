@@ -1,5 +1,5 @@
-import { Result } from "../../common/commons.js";
-import { status } from "../../helpers/response.js";
+import { HttpStatus } from "../../common/constants/http-status.js";
+import { Result } from "../../common/dtos/result.js";
 import { EmptyResponse } from "../todo/models.js";
 import { AddressDto, CreateAddressResponseDto } from "./model.js";
 import { Address, IAddress } from "./schema.js";
@@ -24,7 +24,7 @@ export const createAddressAsync = async (
 
   await address.save();
   const data = { id: address._id.toString() } as CreateAddressResponseDto;
-  return new Result(status.Created, data);
+  return new Result<CreateAddressResponseDto>().setStatus(HttpStatus.Ok).setData(data);
 };
 
 export const getAllAddressesAsync = async (): Promise<Result<AddressDto[]>> => {
@@ -40,13 +40,13 @@ export const getAllAddressesAsync = async (): Promise<Result<AddressDto[]>> => {
     country: address.country,
     identityNumber: address.identityNumber,
   }));
-  return new Result(status.Ok, result);
+  return new Result<AddressDto[]>().setStatus(HttpStatus.Ok).setData(result || []);
 };
 
-export const getAddressByIdAsync = async (id: string): Promise<Result<AddressDto>> => {
+export const getAddressByIdAsync = async (id: string): Promise<Result<AddressDto | null>> => {
   const address = await Address.findOne({ _id: id, isDeleted: false }).lean();
   if (!address) {
-    return new Result(status.NotFound, {} as AddressDto);
+    return new Result<AddressDto | null>().setStatus(HttpStatus.NotFound).setData(null);
   }
 
   const result = {
@@ -60,7 +60,7 @@ export const getAddressByIdAsync = async (id: string): Promise<Result<AddressDto
     country: address.country,
     identityNumber: address.identityNumber,
   };
-  return new Result(status.Ok, result);
+  return new Result<AddressDto>().setStatus(HttpStatus.Ok).setData(result);
 };
 
 export const updateAddressAsync = async (
@@ -86,9 +86,9 @@ export const updateAddressAsync = async (
   );
 
   if (!address) {
-    return new Result(status.NotFound, "Address not found");
+    return new Result<EmptyResponse>().setStatus(HttpStatus.NotFound).setErrors({ address: ["Address not found"] });
   }
-  return new Result(status.NoContent, {});
+  return new Result<EmptyResponse>().setStatus(HttpStatus.NoContent).setData({});
 };
 
 export const removeAddressAsync = async (currentUser: string, id: string): Promise<Result<EmptyResponse>> => {
@@ -101,7 +101,7 @@ export const removeAddressAsync = async (currentUser: string, id: string): Promi
   );
 
   if (!address) {
-    return new Result(status.NotFound, "Address not found");
+    return new Result<EmptyResponse>().setStatus(HttpStatus.NotFound).setErrors({ address: ["Address not found"] });
   }
-  return new Result(status.NoContent, {});
+  return new Result<EmptyResponse>().setStatus(HttpStatus.NoContent).setData({});
 };
