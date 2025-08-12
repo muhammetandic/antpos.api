@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const registerRequestValidator = z
   .object({
-    email: z.string().email().min(3).max(100),
+    email: z.email().min(3).max(100),
     password: z
       .string()
       .min(8)

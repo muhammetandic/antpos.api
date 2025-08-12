@@ -1,0 +1,23 @@
+meta {
+  name: confirmMail
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{url}}/auth/confirmMail
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "email": "muhammet.andic@gmail.com",
+    "controlCode": "",
+    "otp": "123456"
+  }
+}
+
+settings {
+  encodeUrl: true
+}

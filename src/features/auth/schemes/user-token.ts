@@ -1,18 +1,20 @@
 import { Document, model, ObjectId, Schema, SchemaDefinitionProperty } from "mongoose";
-import { TokenType } from "../constants/token-type.js";
+import { TokenKind } from "../constants/token-kind.js";
 
 export interface IUserToken extends Document {
   userId: SchemaDefinitionProperty<ObjectId>;
-  type: TokenType;
-  token: string;
+  kind: TokenKind;
+  controlCode: string;
+  token?: string;
   otp?: string;
   expiresAt: Date;
 }
 
 const userTokenScheme = new Schema<IUserToken>({
   userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  type: { type: String, required: true },
-  token: { type: String, required: true },
+  kind: { type: String, required: true },
+  controlCode: { type: String, required: true },
+  token: { type: String, required: false },
   otp: { type: String, required: false },
   expiresAt: { type: Date, required: true },
 });

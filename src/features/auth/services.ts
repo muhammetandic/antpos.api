@@ -11,6 +11,12 @@ import { addToMailQueue } from "../../services/queue.service.js";
 import { createRandomControlCode, createSixCharCode } from "../../services/utils.service.js";
 import { ControlCodeResponse } from "./models/control-code.response.js";
 import { MailKind } from "../../common/enums/mail-kind.js";
+import { UserToken } from "./schemes/user-token.js";
+import { TokenKind } from "./constants/token-kind.js";
+import { TenMinutesInMilliseconds } from "./constants/timeout.js";
+import { ConfirmOtpRequest } from "./models/confirm-otp.request.js";
+import { ConfirmResponse } from "./models/confirm.response.js";
+import { ResetPasswordRequest } from "./models/reset-password.request.js";
 
 export async function loginAsync(request: LoginRequest): Promise<Result<TokenResponse>> {
   const { email, password } = request;
@@ -31,18 +37,34 @@ export async function loginAsync(request: LoginRequest): Promise<Result<TokenRes
   return new Result<TokenResponse>().setStatus(HttpStatus.Ok).setData(new TokenResponse(accessToken, refreshToken));
 }
 
-export async function registerAsync(request: RegisterRequest): Promise<Result<null>> {
+export async function registerAsync(request: RegisterRequest): Promise<Result<ControlCodeResponse>> {
   const { email, password, name, phone } = request;
   const user = await User.findOne({ email: email, isDeleted: false });
   if (user) {
-    return new Result<null>().setStatus(HttpStatus.BadRequest).setErrors({ email: ["email already exist"] });
+    return new Result<ControlCodeResponse>()
+      .setStatus(HttpStatus.BadRequest)
+      .setErrors({ email: ["email already exist"] });
   }
 
   const hashedPassword = await hashPasswordAsync(password);
   const newUser = new User({ email, password: hashedPassword, name, phone });
   await newUser.save();
 
-  return new Result<null>().setStatus(HttpStatus.Ok).setData(null);
+  const otp = createSixCharCode();
+  const controlCode = createRandomControlCode();
+  const paramaters = { mail: email, name: name, otp: otp, controlCode: controlCode };
+  await addToMailQueue(newUser._id.toString(), MailKind.WELCOME, paramaters);
+
+  const newUserToken = new UserToken({
+    userId: newUser._id,
+    kind: TokenKind.EMAIL_CONFIRMATION,
+    controlCode,
+    otp,
+    expiresAt: new Date(Date.now() + TenMinutesInMilliseconds),
+  });
+  await newUserToken.save();
+
+  return new Result<ControlCodeResponse>().setStatus(HttpStatus.Ok).setData({ controlCode });
 }
 
 export async function forgetPasswordAsync(request: ForgetPasswordRequest): Promise<Result<ControlCodeResponse>> {
@@ -54,46 +76,92 @@ export async function forgetPasswordAsync(request: ForgetPasswordRequest): Promi
 
   const otp = createSixCharCode();
   const controlCode = createRandomControlCode();
-  const parameters = { mail: email, name: user.name, otp: otp };
+  const parameters = { mail: email, name: user.name, otp: otp, controlCode: controlCode };
   await addToMailQueue(user._id.toString(), MailKind.CONFIRM_PASSWORD_OTP, parameters);
+
+  const newUserToken = new UserToken({
+    userId: user._id,
+    kind: TokenKind.PASSWORD_RESET,
+    controlCode,
+    otp,
+    expiresAt: new Date(Date.now() + TenMinutesInMilliseconds),
+  });
+  await newUserToken.save();
 
   return new Result<ControlCodeResponse>().setStatus(HttpStatus.Ok).setData({ controlCode });
 }
 
-// export const setPasswordAsync = async (request: SetPasswordRequest): Promise<Result<SetPasswordResponse>> => {
-//   const { email, token, code, password } = request;
-//   const user = await User.findOne({ email: email, isDeleted: false });
-//   if (!user) {
-//     return new Result(status.NotFound, "user not found");
-//   }
-//
-//   if (user?.token !== token) {
-//     return new Result(status.BadRequest, "invalid token");
-//   }
-//
-//   if (user?.tokenExpiresAt && user?.tokenExpiresAt.getTime() < Date.now()) {
-//     return new Result(status.BadRequest, "token expired");
-//   }
-//
-//   if (user?.code !== code) {
-//     return new Result(status.BadRequest, "invalid code");
-//   }
-//
-//   const encrypted = encrypt(password);
-//
-//   if (encrypted === null) {
-//     return new Result(status.InternalServerError, "password encryption failed");
-//   }
-//
-//   await user.updateOne({
-//     password: encrypted?.encryptedText,
-//     salt: encrypted?.salt,
-//     token: null,
-//     tokenExpiresAt: null,
-//     code: null,
-//     updatedAt: new Date(Date.now()),
-//   });
-//
-//   return new Result(status.Ok, {});
-// };
-//
+export async function confirmMailAsync(request: ConfirmOtpRequest): Promise<Result<ConfirmResponse>> {
+  const { email, controlCode, otp } = request;
+
+  const user = await User.findOne({ email: email, isDeleted: false });
+  if (!user) {
+    return new Result<ConfirmResponse>().setStatus(HttpStatus.NotFound).setErrors({ email: ["user not found"] });
+  }
+
+  const token = await UserToken.findOne({ userId: user._id, kind: TokenKind.EMAIL_CONFIRMATION, controlCode });
+  if (!token) {
+    return new Result<ConfirmResponse>().setStatus(HttpStatus.BadRequest).setErrors({ token: ["token not found"] });
+  }
+
+  if (token?.otp !== otp) {
+    return new Result<ConfirmResponse>().setStatus(HttpStatus.BadRequest).setErrors({ otp: ["invalid otp"] });
+  }
+
+  user.emailVerified = true;
+  await user.save();
+
+  await UserToken.findOneAndDelete({ userId: user._id, kind: TokenKind.EMAIL_CONFIRMATION, controlCode });
+
+  return new Result<ConfirmResponse>().setStatus(HttpStatus.Ok).setData({ email: user.email });
+}
+
+export async function confirmResetPasswordAsync(request: ConfirmOtpRequest): Promise<Result<ConfirmResponse>> {
+  const { email, controlCode, otp } = request;
+
+  const user = await User.findOne({ email: email, isDeleted: false });
+  if (!user) {
+    return new Result<ConfirmResponse>().setStatus(HttpStatus.NotFound).setErrors({ email: ["user not found"] });
+  }
+
+  const token = await UserToken.findOne({ userId: user._id, kind: TokenKind.EMAIL_CONFIRMATION, controlCode });
+  if (!token) {
+    return new Result<ConfirmResponse>().setStatus(HttpStatus.BadRequest).setErrors({ token: ["token not found"] });
+  }
+
+  if (token?.otp !== otp) {
+    return new Result<ConfirmResponse>().setStatus(HttpStatus.BadRequest).setErrors({ otp: ["invalid otp"] });
+  }
+
+  const newControlCode = createRandomControlCode();
+  await UserToken.findOneAndUpdate({
+    userId: user._id,
+    kind: TokenKind.EMAIL_CONFIRMATION,
+    controlCode: newControlCode,
+  });
+
+  return new Result<ConfirmResponse>()
+    .setStatus(HttpStatus.Ok)
+    .setData({ email: user.email, controlCode: newControlCode });
+}
+
+export async function resetPasswordAsync(request: ResetPasswordRequest): Promise<Result<void>> {
+  const { email, controlCode, password } = request;
+
+  const user = await User.findOne({ email: email, isDeleted: false });
+  if (!user) {
+    return new Result<void>().setStatus(HttpStatus.NotFound).setErrors({ email: ["user not found"] });
+  }
+
+  const token = await UserToken.findOne({ userId: user._id, kind: TokenKind.EMAIL_CONFIRMATION, controlCode });
+  if (!token) {
+    return new Result<void>().setStatus(HttpStatus.BadRequest).setErrors({ token: ["token not found"] });
+  }
+
+  user.password = await hashPasswordAsync(password);
+  await user.save();
+
+  await UserToken.findOneAndDelete({ userId: user._id, kind: TokenKind.EMAIL_CONFIRMATION, controlCode });
+
+  return new Result<void>().setStatus(HttpStatus.Ok).setData();
+}

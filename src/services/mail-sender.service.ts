@@ -1,7 +1,7 @@
 import { Mail } from "../common/dtos/mail.js";
 import { MailKind } from "../common/enums/mail-kind.js";
 import { MailTemplate } from "../common/enums/mail-template.js";
-import { TConfirmOtpParameters, TWelcomeParameters } from "../common/schemes/mail-queue.js";
+import { TMailMessageParameters } from "../common/schemes/mail-queue.js";
 import { sendMailAsync } from "./mail.service.js";
 
 const mailConfigs = {
@@ -19,10 +19,7 @@ const mailConfigs = {
   },
 };
 
-export async function sendMailWithParametersAsync(
-  mailKind: MailKind,
-  parameters: TConfirmOtpParameters | TWelcomeParameters,
-) {
+export async function sendMailWithParametersAsync(mailKind: MailKind, parameters: TMailMessageParameters) {
   const { subject, template } = mailConfigs[mailKind];
   const mail = new Mail(parameters.mail, subject, template, parameters);
   await sendMailAsync(mail);

@@ -52,16 +52,15 @@
   <body>
     <div class="text">
       <h2>Sayın {{name}},</h2>
-      <p>Sistemimize kayıt olduğunuz için teşekkür ederiz.</p>
       <p>
-        Sistemi kullanabilmek için şifre oluşturmalısınız. Aşağıdaki kodu şifre oluşturma ekranına girerek şifrenizi
-        oluşturabilirsiniz.
+        Uygulamamıza kayıt olduğunuz için teşekkür ederiz. Uygulamayı kullanabilmek için email adresiniz onaylamanız
+        gerekmektedir. Lütfen aşağıdaki kodu onay ekranına girerek email adresinizi onaylayınız.
       </p>
-      <div class="code">{{code}}</div>
+      <div class="code">{{otp}}</div>
       <div class="footer">
         <p class="center">
           Uygulamaya gitmek için
-          <a href="{{app_url}}/auth/forgotten-password?token={{token}}&email={{email}}">tıklayınız.</a>
+          <a href="{{app_url}}/auth/confirm-mail?controlCode={{controlCode}}&mail={{mail}}">tıklayınız.</a>
         </p>
         <p class="app center">antpos-todo</p>
       </div>

@@ -1,21 +1,17 @@
 import { Document, model, ObjectId, Schema, SchemaDefinitionProperty } from "mongoose";
-import { MailKind } from "../../helpers/mail/mailKind.enum.js";
+import { MailKind } from "../enums/mail-kind.js";
 
-export type TConfirmOtpParameters = {
+export type TMailMessageParameters = {
   mail: string;
   name: string;
-  otp: string;
-};
-
-export type TWelcomeParameters = {
-  mail: string;
-  name: string;
+  otp?: string;
+  controlCode?: string;
 };
 
 export interface IMailQueue extends Document {
   userId: SchemaDefinitionProperty<ObjectId>;
   mailKind: MailKind;
-  parameters: TConfirmOtpParameters | TWelcomeParameters;
+  parameters: TMailMessageParameters;
 }
 
 const mailQueueScheme = new Schema<IMailQueue>({

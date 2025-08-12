@@ -1,30 +1,26 @@
-import { UnknownKeysParam, ZodError, ZodIssue, ZodObject, ZodRawShape } from "zod";
+import { z } from "zod";
 import { Request, Response, NextFunction } from "express";
 import { HttpStatus } from "../common/constants/http-status.js";
 import { Result } from "../common/dtos/result.js";
 
-export function validateData(schema: ZodObject<ZodRawShape, UnknownKeysParam>) {
+export function validateData(
+  schema: z.ZodObject<z.ZodRawShape, z.UnknownKeysParam>,
+  source: "body" | "query" | "params" = "body",
+) {
   return (req: Request, res: Response, next: NextFunction) => {
-    try {
-      schema.parse(req.body);
-      next();
-    } catch (error) {
-      if (error instanceof ZodError) {
-        const errors = error.errors.reduce((acc: Record<string, string[]>, issue: ZodIssue) => {
-          const key = issue.path.join(".");
+    const data = req[source];
+    const result = schema.safeParse(data);
 
-          if (!acc[key]) {
-            acc[key] = [issue.message];
-          } else {
-            acc[key].push(issue.message);
-          }
-          return acc;
-        }, {});
+    if (!result.success) {
+      const errors = result.error.issues.reduce((acc: Record<string, string[]>, issue: z.ZodIssue) => {
+        const key = issue.path.join(".") || "_global";
+        acc[key] = acc[key] ? [...acc[key], issue.message] : [issue.message];
+        return acc;
+      }, {});
 
-        res.status(HttpStatus.BadRequest).json(new Result().setErrors(errors));
-      } else {
-        res.status(500).json({ error: "Internal Server Error" });
-      }
+      return res.status(HttpStatus.BadRequest).json(new Result().setErrors(errors));
     }
+
+    next();
   };
 }

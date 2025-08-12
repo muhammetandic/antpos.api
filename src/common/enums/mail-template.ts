@@ -1,5 +1,5 @@
 export enum MailTemplate {
-  welcome = "WELCOME",
+  welcome = "welcome",
   confirmMailOtp = "confirm-mail",
   forgetPasswordOtp = "forget-password",
 }
